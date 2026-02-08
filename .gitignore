@@ -71,6 +71,14 @@ UI/BuildMetadata.generated.swift
 !AGENTS.md
 !CONTRIBUTING.md
 !AI_ISSUE_TEMPLATE.md
+!QUICKSTART.md
+!ARCHITECTURE.md
+!DIAGRAMS.md
+!DEBUGGING.md
+!SECURITY.md
+!RETRACE_GUIDE.md
+!TESTS_CLEANUP.md
+!TESTS_MIGRATION.md
 !*/README.md
 !*/AGENTS.md
 
@@ -96,8 +104,8 @@ Retrace.xcodeproj/
 # XcodeGen build config (not needed when using SPM directly)
 Debug.xcconfig
 
-# SPM resolved dependencies
-Package.resolved
+# SPM resolved dependencies (we commit for reproducible builds)
+# Package.resolved
 
 # Development scripts (consolidated into build_and_sign.sh and dev.sh)
 build_debug.sh

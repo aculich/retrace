@@ -1,0 +1,6 @@
+Read the following files for complete project guidance before generating code:
+
+- AGENTS.md — Project-wide architecture, module ownership, coding conventions, and critical rules
+- {Module}/AGENTS.md — Module-specific instructions (e.g., Database/AGENTS.md, UI/AGENTS.md)
+- CONTRIBUTING.md — Development workflow, TDD requirements, coding standards, PR process
+- ARCHITECTURE.md — System architecture, data flow, and dependencies

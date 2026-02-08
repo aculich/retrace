@@ -1,0 +1,25 @@
+# CodeRabbit configuration
+# https://docs.coderabbit.ai/guides/configure-coderabbit
+language: en-US
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  path_instructions:
+    - path: "Shared/**"
+      instructions: >
+        This directory contains shared protocols and model types used across all modules.
+        Changes here affect the entire codebase. Verify Sendable conformance, that types
+        are value types (structs/enums), and that no module-specific logic leaks in.
+    - path: "Database/**"
+      instructions: >
+        Database module. Ensure all SQL is parameterized (no string interpolation).
+        Check for proper error handling with DatabaseError types. Verify actor isolation.
+    - path: "UI/**"
+      instructions: >
+        SwiftUI interface. Check for proper @MainActor usage, view model separation,
+        and that no direct database/storage access happens from views.
+chat:
+  auto_reply: true
