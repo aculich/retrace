@@ -99,6 +99,86 @@ Rebasing rewrites history. After `./sync`, update the remote with:
 git push origin develop --force-with-lease
 ```
 
+## Publishing pull requests upstream
+
+Target repository: **[haseab/retrace](https://github.com/haseab/retrace)** (`upstream`), base branch: **`main`**. Your fork (**`origin`**) is where GitHub reads the head branch from.
+
+Upstream expectations for titles, description, and review bar are in [CONTRIBUTING.md](CONTRIBUTING.md) (**Pull Request Process**). Treat the following as a fork-specific add-on.
+
+### 1. Prepare the change set
+
+1. **Sync** so your work sits on current upstream:
+
+   ```sh
+   ./sync
+   git push origin develop --force-with-lease
+   ```
+
+2. **Verify** (adjust scope if the change is narrow):
+
+   ```sh
+   swift build
+   swift test   # optional filters; see AGENTS.md
+   ```
+
+3. **Prefer one topic per PR.** If `develop` mixes unrelated changes, create a **dedicated branch** from `upstream/main` and bring in only the commits you want (cherry-pick or copy commits), then open the PR from that branch — not from a noisy `develop`.
+
+   ```sh
+   git fetch upstream
+   git checkout -b fix/short-description upstream/main
+   git cherry-pick <sha1> <sha2>   # or: git merge --no-ff develop (only if develop is solely this feature)
+   ```
+
+   If the whole PR is exactly what is on `develop` after sync (single feature / single series of commits), you can use **`develop`** as the head branch instead.
+
+### 2. Push the branch you will offer upstream
+
+Always push the **head** branch to **`origin`** (your fork), not to `upstream` (you have no push access there).
+
+```sh
+git push -u origin fix/short-description
+# or, if PR is from develop:
+git push origin develop --force-with-lease
+```
+
+### 3. Open the pull request
+
+**GitHub web:** open [haseab/retrace/compare](https://github.com/haseab/retrace/compare), choose **base:** `haseab/retrace` `main` and **compare:** your fork’s branch (e.g. `aculich:fix/short-description` or `aculich:develop`).
+
+**GitHub CLI** (from the repo root, authenticated with `gh auth login`):
+
+```sh
+# Example: PR from a feature branch on your fork
+gh pr create --repo haseab/retrace \
+  --base main \
+  --head aculich:fix/short-description \
+  --title "fix(ui): …" \
+  --body "## Summary\n…\n\n## Test plan\n…"
+```
+
+If your default remote fork is `origin` and `gh` is scoped to `aculich/retrace`, you can often omit `--head` by pushing first and using the compare URL GitHub prints after `git push`.
+
+### 4. PR hygiene
+
+- Link **issues** (`Fixes #123` or `See #123`) if applicable.
+- **UI changes:** add before/after screenshots or short screen recording in the PR description.
+- **Large or risky changes:** say how you tested (devices, macOS version, migration paths).
+- Keep commits readable; maintainers may **squash** on merge — still use clear commit messages per [CONTRIBUTING.md](CONTRIBUTING.md).
+
+### 5. After review
+
+- Push updates to the **same branch** on `origin`; the PR updates automatically.
+- If upstream `main` moves, rebase your PR branch and force-push with lease:
+
+  ```sh
+  git fetch upstream
+  git checkout fix/short-description
+  git rebase upstream/main
+  git push origin fix/short-description --force-with-lease
+  ```
+
+Do **not** rebase other people’s open PRs on your fork unless you know what you are doing; for your own PR branch, the above is normal.
+
 ## Diagram
 
 ```mermaid

@@ -910,6 +910,8 @@ git commit -m "fix everything and add tests and refactor"
 
 ## Pull Request Process
 
+If you use a **fork** with `origin` (your fork) and `upstream` (haseab/retrace), see [WORKFLOW.md](WORKFLOW.md) — **Publishing pull requests upstream** for preparing the branch, opening the PR against `haseab/retrace`, and using the GitHub CLI. The checklist below still applies for tests, style, and PR content.
+
 ### Before Submitting
 
 1. **Rebase on latest main**
