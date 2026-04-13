@@ -1,6 +1,6 @@
 # Fork workflow: upstream, local builds, and optional GitButler
 
-This fork tracks [haseab/retrace](https://github.com/haseab/retrace) while keeping unpublished work on `develop` until you open a PR upstream.
+This fork tracks [haseab/retrace](https://github.com/haseab/retrace) while keeping unpublished work on **`develop`** until you open a PR upstream. On GitHub, set the fork’s **default branch** to **`develop`** so new clones and PRs target your working branch (Settings → General → Default branch, or `gh repo edit <you>/retrace --default-branch develop`).
 
 ## Remotes
 
@@ -17,17 +17,16 @@ git remote add upstream https://github.com/haseab/retrace.git
 
 ## Branch roles
 
-- **`develop`** — Your day-to-day branch: latest upstream `main` (via rebase) plus your fork-only commits. Open PRs upstream from here or from short-lived feature branches.
-- **`main` (on your fork)** — May lag upstream; that is fine. When you want GitHub’s default branch to match upstream (e.g. for a clean fork surface), fast-forward it intentionally:
+- **`develop`** — Default branch for **your** work on the fork: rebased onto `upstream/main` regularly, plus fork-only commits. Open PRs upstream from here (or from short-lived feature branches). **Do not treat `origin/main` as your integration branch** — use `develop`.
+
+- **`main` (on your fork)** — **Mirror of `upstream/main` only.** Every `./sync` runs `git push origin upstream/main:main --force-with-lease` so `origin/main` stays identical to upstream (no long-lived fork-only commits on `main`). Your unique work stays on `develop`.
+
+  To mirror **without** a full `./sync` (e.g. CI or another machine):
 
   ```sh
   git fetch upstream
-  git checkout main
-  git reset --hard upstream/main   # destructive to local main only
-  git push origin main --force-with-lease
+  git push origin upstream/main:main --force-with-lease
   ```
-
-  Only do this when you do not need unique commits on `origin/main`.
 
 ## Tag vs `main`
 
@@ -39,7 +38,7 @@ From the repo root (`retrace__haseab/`):
 
 | Command | What it does |
 |---------|----------------|
-| **`./sync`** | `git fetch upstream`, `checkout develop`, **`git rebase upstream/main`**, then **`./build_and_sign.sh`**. Installs to `/Applications/Retrace.app`. **Does not delete app data or settings.** |
+| **`./sync`** | `git fetch upstream`, **mirror `upstream/main` → `origin/main`**, `checkout develop`, **`git rebase upstream/main`**, then **`./build_and_sign.sh`**. Installs to `/Applications/Retrace.app`. **Does not delete app data or settings.** |
 | **`./dev.sh`** | `swift build -c debug` and runs **`.build/debug/Retrace`** with build metadata env vars. Use for fast iteration; not the same as the signed app in `/Applications/`. |
 | **`./go`** | Safe by default: quit app, build, install (same idea as a quick reinstall). **`./go --full-reset`** wipes data, preferences, and resets TCC — requires typing `yes` to confirm. |
 
@@ -105,8 +104,10 @@ git push origin develop --force-with-lease
 ```mermaid
 flowchart LR
   upstreamMain[upstream_main]
+  originMain[origin_main_mirror]
   develop[develop_fork]
   feature[feature_branches]
+  upstreamMain -->|identical_each_sync| originMain
   upstreamMain -->|rebase| develop
   feature -->|merge_or_cherry_pick| develop
 ```
