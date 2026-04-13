@@ -232,7 +232,7 @@ final class SearchViewModelAvailableAppsTests: XCTestCase {
             if condition() {
                 return
             }
-            try? await Task.sleep(nanoseconds: 10_000_000)
+            try? await Task.sleep(for: .nanoseconds(Int64(10_000_000)), clock: .continuous)
         }
         XCTFail("Timed out waiting for condition")
     }
