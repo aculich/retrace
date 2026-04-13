@@ -11,7 +11,7 @@ This document describes the system architecture, module responsibilities, data f
 1. **Local-first** -- All data stays on-device. No network calls for core functionality.
 2. **Modular** -- Strict module boundaries with protocol-based interfaces.
 3. **Performant** -- <20% CPU, <1 GB RAM, sub-100 ms search on Apple Silicon.
-4. **Privacy-preserving** -- AES-256-GCM encryption at rest, no telemetry, app exclusion support.
+4. **Privacy-preserving** -- Optional encryption at rest (SQLCipher for `retrace.db` when enabled, Keychain-backed key; CryptoKit for other protected payloads), no telemetry, app exclusion support.
 5. **Extensible** -- Prepared for audio transcription (whisper.cpp) and semantic search (llama.cpp).
 
 ---
@@ -65,11 +65,13 @@ SQLite database with FTS5 full-text search, using SQLCipher for optional encrypt
 | `DatabaseConnection` | Low-level SQLite connection management |
 | `FTSManager` | Full-text search operations |
 | `IDMappingService` | ID mapping between Retrace and imported (Rewind) sources |
-| `Schema.swift` | Table definitions (segment, frame, node, video, searchRanking, etc.) |
-| `Migrations/` | Versioned schema migrations (V1 through V6) |
-| `Queries/` | Query implementations: Frame, Segment, AppSegment, Document, Node, FTS, DailyMetrics |
+| `Schema.swift` | Table name constants, pragmas, and schema helpers (Rewind-compatible layout) |
+| `Migrations/` | Versioned migrations **V1 through V13** (`MigrationRunner`): initial schema, video finalization, tags, daily metrics, FTS tokenizer upgrade, frame processing timestamps, redaction, segment comments (+ FTS for comments), frame metadata, in-page URL cleanup |
+| `Queries/` | Frame, Segment, AppSegment, Document, Node, FTS (`FTSQueries`), DailyMetrics |
 
-**Key tables:** `segment`, `frame`, `node`, `video`, `searchRanking` (FTS5), `searchRanking_content`, `doc_segment`, `videoFileState`.
+**Core tables:** `segment`, `frame`, `node`, `video`, `searchRanking` (FTS5), `searchRanking_content`, `doc_segment`, `videoFileState`, `schema_migrations`.
+
+**Additional tables (evolved via migrations):** `tag`, `segment_tag`, `daily_metrics`, `segment_comment`, `frame_processing`, `purge`, plus `audio`, `transcript_word`, `event`, and `summary` from the initial schema (reserved for future audio / meeting-style features; not all are exercised in the current UI).
 
 ### Storage (`Storage/`)
 
@@ -85,7 +87,7 @@ File I/O and HEVC video encoding for captured frames.
 | `WAL/` | Write-Ahead Log (`WALManager`, `RecoveryManager`) for crash-safe writes |
 | `FileManager/` | `DirectoryManager`, `StorageHealthMonitor` |
 
-Videos are stored as HEVC `.mp4` files under `{AppPaths.storageRoot}/videos/`.
+Encoded segments are written under **`chunks/`** beneath the configured storage root (`AppPaths.storageRoot`, tilde-expanded at runtime) with layout `chunks/YYYYMM/DD/<videoSegmentId>` (files are HEVC in an MP4 container but typically **extensionless** on disk; paths are stored relative to the storage root). **`retrace.db`** is a sibling of the `chunks/` directory (`AppPaths.databasePath`). `AppPaths` also defines `segments/` and `temp/` under the same root for compatibility and auxiliary use; primary capture output uses **`chunks/`** via `DirectoryManager`.
 
 ### Capture (`Capture/`)
 
@@ -185,7 +187,7 @@ CGWindowListCapture (every 2 seconds)
         |                          |
         v                          v
   Storage on disk             DatabaseManager
-  ~/Library/.../videos/       SQLite + FTS5 index
+  {storageRoot}/chunks/       SQLite + FTS5 index
                                    |
                                    v
                               SearchManager
@@ -241,7 +243,9 @@ frame (1) ----< (1) doc_segment >---- (1) searchRanking_content
 | `videoFileState` | Tracks video file encoding/finalization state |
 | `schema_migrations` | Applied migration version tracking |
 
-The database uses WAL mode, NORMAL synchronous, and auto-vacuum INCREMENTAL. It is stored at `~/Library/Application Support/Retrace/retrace.db` by default.
+The database uses WAL mode, NORMAL synchronous, and auto-vacuum INCREMENTAL. Default location is **`~/Library/Application Support/Retrace/retrace.db`** next to the default storage root; users can relocate data via settings (`customRetraceDBLocation` in the `io.retrace.app` suite), in which case **`retrace.db` and `chunks/` should stay in the same chosen folder** so paths resolve consistently.
+
+**Optional encryption:** When enabled, `DatabaseManager` applies a SQLCipher `PRAGMA key` using a secret stored in the Keychain (`AppPaths.keychainService` / `AppPaths.keychainAccount`). Unencrypted databases omit the pragma so standard SQLite tooling can open them.
 
 ---
 
@@ -253,15 +257,16 @@ The database uses WAL mode, NORMAL synchronous, and auto-vacuum INCREMENTAL. It 
 |---|---|---|
 | [swift-sqlcipher](https://github.com/skiptools/swift-sqlcipher) | 1.0.0+ | SQLite with encryption; used for Rewind import and optional DB encryption |
 | [Sparkle](https://github.com/sparkle-project/Sparkle) | 2.6.0+ | Auto-update framework for distributing new versions |
+| [SwiftyChrono](https://github.com/batmac/SwiftyChrono) | pinned revision | Natural-language date parsing in the UI target |
 
 ### Apple System Frameworks
 
 | Framework | Used by | Purpose |
 |---|---|---|
-| CoreGraphics | Capture | `CGWindowListCreateImage` screen capture |
+| CoreGraphics | Capture | CGWindowList-based screen capture (`CGWindowListCapture`) |
 | Vision | Processing | On-device OCR text extraction |
 | VideoToolbox | Storage | Hardware-accelerated HEVC encoding |
-| CryptoKit | Database | AES-256-GCM encryption at rest |
+| CryptoKit | Database / storage | Cryptographic primitives for protected data where applicable |
 | AppKit / SwiftUI | UI | macOS interface |
 | Accessibility | Capture, Processing | App context and window metadata |
 
@@ -277,7 +282,7 @@ The database uses WAL mode, NORMAL synchronous, and auto-vacuum INCREMENTAL. It 
 ## Security Model
 
 - **Local-only** -- No network calls for core functionality. Data never leaves the device.
-- **Encryption at rest** -- Optional AES-256-GCM via CryptoKit for the database and stored data.
+- **Encryption at rest** -- Optional **SQLCipher** for the SQLite database (Keychain-stored key) when the user enables encryption; CryptoKit and other platform crypto for related protected material.
 - **Permission-gated** -- Screen Recording and Accessibility permissions required; app checks and prompts gracefully.
 - **No telemetry** -- No analytics, crash reporting, or usage data sent anywhere.
 - **Private window exclusion** -- Configurable per-app exclusion list; auto-detection of private browsing.
@@ -304,6 +309,7 @@ Current status: HEVC encoding is working but not yet optimized (~50--70 GB/month
 ## Build System
 
 - **Primary**: Swift Package Manager (`Package.swift`). `swift build` / `swift test`.
+- **Products**: `Retrace` (app executable), plus small **dev utilities** `TestMostRecentFrame` and `QueryRewindApps` under `Sources/` for local debugging and Rewind-database inspection (not part of the shipped UX).
 - **Release**: XcodeGen (`project.yml`) generates an Xcode project for archive + code signing + notarization.
 - **CI**: GitHub Actions on macOS 14 (Apple Silicon). See `.github/workflows/ci.yml`.
 - **Distribution**: Sparkle auto-update framework; DMG packaging via `scripts/create-release.sh`.

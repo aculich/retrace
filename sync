@@ -1,0 +1,4 @@
+#!/bin/bash
+# Sync upstream, rebase develop, rebuild. Run from repo root: ./sync [--main] [--keep-data]
+cd "$(dirname "$0")"
+exec ./scripts/sync_and_rebuild.sh "$@"
