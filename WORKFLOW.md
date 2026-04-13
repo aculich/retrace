@@ -179,6 +179,44 @@ If your default remote fork is `origin` and `gh` is scoped to `aculich/retrace`,
 
 Do **not** rebase other people’s open PRs on your fork unless you know what you are doing; for your own PR branch, the above is normal.
 
+## Upstream community: PRs, issues, forks, and optional fork integration
+
+Use this when you want a **local, non-committed cache** of upstream metadata plus a **committed checklist** for fork work that might never become an upstream PR.
+
+### GitHub JSON cache (gitignored)
+
+Directory: **`research/github-haseab/`** (ignored by git). Regenerate with:
+
+```sh
+./scripts/github_export_upstream.sh       # needs: gh auth login, jq
+./scripts/github_summarize_contributors.sh
+```
+
+Outputs include `pulls.json`, `issues.json`, `forks.json`, `manifest.json`, and **`contributors-summary.md`** (merged PR authors, PR counts, issue authors, forks with `pushed_at`). Override output dir with **`GITHUB_HASEAB_CACHE`**.
+
+Browse live: [Pull requests](https://github.com/haseab/retrace/pulls?q=is%3Apr+), [Forks](https://github.com/haseab/retrace/forks).
+
+### Fork work without an upstream PR
+
+Some forks carry large or experimental deltas (example compare views: [stuartsc](https://github.com/haseab/retrace/compare/main...stuartsc:retrace:main), [runprise](https://github.com/haseab/retrace/compare/main...runprise:retrace:main)). Track what you care about in **[FEATURES.md](FEATURES.md)** (status columns, links).
+
+**Create a local tracking branch** (adds `fork-<owner>` remote, branch `track/<owner>-<branch>`):
+
+```sh
+./scripts/fork_track_remote.sh stuartsc main
+git log upstream/main..track/stuartsc-main --oneline
+```
+
+Refresh after they push: `git fetch fork-stuartsc` then `git branch -f track/stuartsc-main fork-stuartsc/main` (or re-run the script).
+
+Integrate only when you have reviewed and tested: merge or cherry-pick from `track/...` into **`develop`**; update **FEATURES.md** status (`in_develop`, `pr_upstream`, `merged_upstream`, or `rejected`).
+
+### GitButler / `but` (optional)
+
+- **Virtual branches:** One lane per `track/<fork>-<branch>` can match how GitButler separates parallel lines of work before you merge anything into `develop`.
+- **Caveat:** Do not mix **Graphite (`gt`)** and GitButler stacking in the same worktree.
+- **Plain git is enough** for most fork audits: remotes + `track/*` + cherry-pick/merge is fine without the GitButler UI.
+
 ## Diagram
 
 ```mermaid

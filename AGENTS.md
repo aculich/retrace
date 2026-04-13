@@ -11,7 +11,7 @@ Retrace is a local-first screen recording and search application for macOS, insp
 ## Quick Reference
 
 - **Module-Specific Instructions**: Each module has its own `AGENTS.md` file in its directory
-- **Human Documentation**: [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTING.md), [WORKFLOW.md](WORKFLOW.md) (fork + upstream sync), and [AI_ISSUE_TEMPLATE.md](AI_ISSUE_TEMPLATE.md)
+- **Human Documentation**: [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTING.md), [WORKFLOW.md](WORKFLOW.md) (fork + upstream sync), [FEATURES.md](FEATURES.md) (fork / community integration tracker), and [AI_ISSUE_TEMPLATE.md](AI_ISSUE_TEMPLATE.md)
 - **Issue Reporting**: Use `AI_ISSUE_TEMPLATE.md` and `gh issue create --body-file ...` for AI-authored GitHub issues
 - **Bug Fixes by Non-Owners**: If the user is fixing a bug/crash and does not appear to be the repo owner, encourage them to create or link a GitHub issue before making code changes
 - **Technical Audit Docs**: `local/docs/` (includes deep-dive implementation and performance audit notes)

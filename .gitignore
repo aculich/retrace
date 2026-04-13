@@ -65,6 +65,9 @@ UI/BuildMetadata.generated.swift
 # Local development workspace (personal files, experiments, notes)
 /local/
 
+# Local GitHub API cache (PRs, issues, forks — never commit)
+research/github-haseab/
+
 # Markdown files (except key docs)
 *.md
 !README.md
@@ -80,6 +83,7 @@ UI/BuildMetadata.generated.swift
 !TESTS_CLEANUP.md
 !TESTS_MIGRATION.md
 !WORKFLOW.md
+!FEATURES.md
 !docs/RETRACE_DATA_LAYOUT.md
 !*/README.md
 !*/AGENTS.md
